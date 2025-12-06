@@ -49,8 +49,8 @@ public static class BobberBarPatch
             if (_config == null || !_config.EnableMod || Game1.player == null)
                 return;
 
-            // 统计有效鱼类总数
-            int totalFish = FishCounter.GetTotalFishCount(_config.ExcludeAlgae);
+            // 统计有效鱼类总数 (传递调试标志)
+            int totalFish = FishCounter.GetTotalFishCount(_config.ExcludeAlgae, _config.ShowDebugInfo);
 
             // 计算额外像素
             int bonusPixels = FishCounter.CalculateBonusPixels(totalFish, _config.FishPerPixel);

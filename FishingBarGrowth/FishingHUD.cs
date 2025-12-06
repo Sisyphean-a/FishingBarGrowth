@@ -32,8 +32,8 @@ public class FishingHUD
         if (Game1.player?.CurrentTool is not FishingRod)
             return;
 
-        // 获取统计数据
-        int totalFish = FishCounter.GetTotalFishCount(_config.ExcludeAlgae);
+        // 获取统计数据 (HUD不需要调试日志,避免刷屏)
+        int totalFish = FishCounter.GetTotalFishCount(_config.ExcludeAlgae, false);
         int bonusPixels = FishCounter.CalculateBonusPixels(totalFish, _config.FishPerPixel);
         int baseBarHeight = 96; // 默认基础高度
         int currentBarHeight = baseBarHeight + bonusPixels;
@@ -48,8 +48,8 @@ public class FishingHUD
         int x = _config.HudXOffset;
         int y = Game1.uiViewport.Height - _config.HudYOffset;
 
-        // 绘制半透明背景
-        DrawBackground(spriteBatch, x - 10, y - 10, 300, 100);
+        // 绘制半透明背景 (4行文本,每行32px,加上边距)
+        DrawBackground(spriteBatch, x - 10, y - 10, 350, 140);
 
         // 绘制文本
         int lineHeight = 32;

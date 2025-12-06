@@ -43,6 +43,6 @@ public class ModConfig
     /// <summary>
     /// HUD显示的Y位置偏移(从底部开始)
     /// </summary>
-    public int HudYOffset { get; set; } = 100;
+    public int HudYOffset { get; set; } = 180;
 }
 

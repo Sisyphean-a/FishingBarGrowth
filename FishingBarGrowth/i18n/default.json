@@ -22,7 +22,7 @@
   "config.hudX.tooltip": "Distance from the left edge of the screen in pixels. Default: 20",
 
   "config.hudY.name": "HUD Vertical Position",
-  "config.hudY.tooltip": "Distance from the bottom of the screen in pixels. Default: 100",
+  "config.hudY.tooltip": "Distance from the bottom of the screen in pixels. Default: 180",
 
   "config.debug.title": "Debug Settings",
 

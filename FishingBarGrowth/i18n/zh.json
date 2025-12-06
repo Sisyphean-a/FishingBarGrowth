@@ -22,7 +22,7 @@
   "config.hudX.tooltip": "HUD距离屏幕左边缘的距离(像素)。默认值: 20",
 
   "config.hudY.name": "HUD垂直位置",
-  "config.hudY.tooltip": "HUD距离屏幕底部的距离(像素)。默认值: 100",
+  "config.hudY.tooltip": "HUD距离屏幕底部的距离(像素)。默认值: 180",
 
   "config.debug.title": "调试设置",
 

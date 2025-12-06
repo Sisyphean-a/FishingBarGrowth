@@ -23,6 +23,9 @@ public class ModEntry : Mod
         // 初始化HUD
         _fishingHUD = new FishingHUD(_config, () => Helper.Translation.Get("hud.title"));
 
+        // 初始化FishCounter
+        FishCounter.Initialize(LogDebug);
+
         // 初始化补丁
         BobberBarPatch.Initialize(_config, LogDebug);
 
