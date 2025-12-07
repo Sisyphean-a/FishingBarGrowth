@@ -32,46 +32,61 @@ public class FishingHUD
         if (Game1.player?.CurrentTool is not FishingRod)
             return;
 
-        // 获取统计数据 (HUD不需要调试日志,避免刷屏)
+        // 获取统计数据
         int totalFish = FishCounter.GetTotalFishCount(_config.ExcludeAlgae, false);
-        int bonusPixels = FishCounter.CalculateBonusPixels(totalFish, _config.FishPerPixel);
-        int baseBarHeight = 96; // 默认基础高度
-        int currentBarHeight = baseBarHeight + bonusPixels;
-
-        // 应用最大高度限制
-        if (_config.MaxBarHeight > 0 && currentBarHeight > _config.MaxBarHeight)
-        {
-            currentBarHeight = _config.MaxBarHeight;
-        }
 
         // 计算显示位置
         int x = _config.HudXOffset;
         int y = Game1.uiViewport.Height - _config.HudYOffset;
 
+        // 检查是否有钓鱼数据
+        if (!BobberBarPatch.HasFishingData)
+        {
+            // 没有数据时显示提示信息
+            DrawBackground(spriteBatch, x - 10, y - 10, 380, 110);
+
+            int lineHeight = 32;
+            int currentY = y;
+
+            DrawText(spriteBatch, "=== 钓鱼统计 ===", x, currentY, Color.Gold);
+            currentY += lineHeight;
+
+            DrawText(spriteBatch, $"已钓鱼数: {totalFish} 条", x, currentY, Color.White);
+            currentY += lineHeight;
+
+            DrawText(spriteBatch, "请先开始钓鱼以获取数据", x, currentY, Color.Orange);
+            return;
+        }
+
+        // 从BobberBarPatch获取最后一次钓鱼的实际数据
+        int baseBarHeight = BobberBarPatch.LastBaseHeight;      // 游戏计算的基础高度(等级+装备)
+        int bonusPixels = BobberBarPatch.LastBonusPixels;       // 我们添加的奖励
+        int currentBarHeight = BobberBarPatch.LastFinalHeight;  // 最终高度
+
         // 绘制半透明背景 (4行文本,每行32px,加上边距)
-        DrawBackground(spriteBatch, x - 10, y - 10, 350, 140);
+        DrawBackground(spriteBatch, x - 10, y - 10, 380, 140);
 
         // 绘制文本
-        int lineHeight = 32;
-        int currentY = y;
+        int lineHeight2 = 32;
+        int currentY2 = y;
 
         // 标题
-        DrawText(spriteBatch, "=== 钓鱼统计 ===", x, currentY, Color.Gold);
-        currentY += lineHeight;
+        DrawText(spriteBatch, "=== 钓鱼统计 ===", x, currentY2, Color.Gold);
+        currentY2 += lineHeight2;
 
         // 总鱼数
-        DrawText(spriteBatch, $"已钓鱼数: {totalFish} 条", x, currentY, Color.White);
-        currentY += lineHeight;
+        DrawText(spriteBatch, $"已钓鱼数: {totalFish} 条", x, currentY2, Color.White);
+        currentY2 += lineHeight2;
 
         // 钓鱼条长度
-        DrawText(spriteBatch, $"钓鱼条长度: {currentBarHeight} px", x, currentY, Color.LightGreen);
-        currentY += lineHeight;
+        DrawText(spriteBatch, $"钓鱼条长度: {currentBarHeight} px", x, currentY2, Color.LightGreen);
+        currentY2 += lineHeight2;
 
         // 额外增益
-        string bonusText = bonusPixels > 0 
-            ? $"  (基础: {baseBarHeight} + 奖励: {bonusPixels})" 
+        string bonusText = bonusPixels > 0
+            ? $"  (基础: {baseBarHeight} + 奖励: {bonusPixels})"
             : $"  (基础: {baseBarHeight})";
-        DrawText(spriteBatch, bonusText, x, currentY, Color.LightBlue);
+        DrawText(spriteBatch, bonusText, x, currentY2, Color.LightBlue);
     }
 
     /// <summary>

@@ -14,6 +14,12 @@ public static class BobberBarPatch
     private static ModConfig? _config;
     private static Action<string, bool>? _logDebug;
 
+    // 保存最后一次钓鱼的统计数据,供HUD使用
+    public static int LastBaseHeight { get; private set; } = 0;
+    public static int LastBonusPixels { get; private set; } = 0;
+    public static int LastFinalHeight { get; private set; } = 0;
+    public static bool HasFishingData { get; private set; } = false;
+
     /// <summary>
     /// 初始化补丁配置
     /// </summary>
@@ -67,15 +73,21 @@ public static class BobberBarPatch
                 return;
             }
 
-            // 获取当前高度
-            int currentHeight = (int)heightField.GetValue(__instance)!;
-            int newHeight = currentHeight + bonusPixels;
+            // 获取当前高度(这是游戏根据等级、装备等计算出的基础高度)
+            int baseHeight = (int)heightField.GetValue(__instance)!;
+            int newHeight = baseHeight + bonusPixels;
 
             // 应用最大高度限制
             if (_config.MaxBarHeight > 0 && newHeight > _config.MaxBarHeight)
             {
                 newHeight = _config.MaxBarHeight;
             }
+
+            // 保存统计数据供HUD使用
+            LastBaseHeight = baseHeight;
+            LastBonusPixels = bonusPixels;
+            LastFinalHeight = newHeight;
+            HasFishingData = true;
 
             // 设置新高度
             heightField.SetValue(__instance, newHeight);
@@ -84,7 +96,7 @@ public static class BobberBarPatch
             if (_config.ShowDebugInfo)
             {
                 _logDebug?.Invoke(
-                    $"钓鱼条高度已修改: 原始={currentHeight}px, 奖励={bonusPixels}px (总鱼数={totalFish}), 最终={newHeight}px",
+                    $"钓鱼条高度已修改: 基础={baseHeight}px (等级+装备), 奖励={bonusPixels}px (总鱼数={totalFish}), 最终={newHeight}px",
                     false
                 );
             }
