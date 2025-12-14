@@ -9,7 +9,7 @@ namespace FishingBarGrowth;
 public static class FishCounter
 {
     // 需要排除的物品ID: 海草(152), 绿藻(153), 白藻(157)
-    private static readonly string[] AlgaeIds = { "152", "153", "157" };
+    // private static readonly string[] AlgaeIds = { "152", "153", "157" };
 
     // 日志回调
     private static Action<string, bool>? _logCallback;
@@ -99,19 +99,29 @@ public static class FishCounter
     /// <returns>是否为有效鱼类</returns>
     private static bool IsValidFish(string itemId, bool excludeAlgae, bool enableDebug = false)
     {
-        // 检查是否需要排除藻类
-        if (excludeAlgae && Array.Exists(AlgaeIds, id => id == itemId))
+        // [修复关键 1]：先统一标准化 ID。
+        // Stardew 1.6 中，itemId 可能是 "152" 也可能是 "(O)152"。
+        // 我们统一将其转换为带前缀的 qualifiedId，确保后续判断标准一致。
+        string qualifiedId = itemId.StartsWith("(") ? itemId : "(O)" + itemId;
+
+        // [修复关键 2]：检查是否需要排除藻类和凝胶
+        // 这里直接判断 qualifiedId，确保无论传入的是 152 还是 (O)152 都能被识别
+        if (excludeAlgae)
         {
-            if (enableDebug)
-                _logCallback?.Invoke($"[FishCounter]   -> 排除藻类: {itemId}", false);
-            return false;
+            // 152=海草, 153=绿藻, 157=白藻
+            // 812=河凝胶, 851=洞穴凝胶, 852=海凝胶
+            bool isTrashFish = qualifiedId == "(O)152" || qualifiedId == "(O)153" || qualifiedId == "(O)157" ||
+                               qualifiedId == "(O)812" || qualifiedId == "(O)851" || qualifiedId == "(O)852";
+            
+            if (isTrashFish)
+            {
+                if (enableDebug)
+                    _logCallback?.Invoke($"[FishCounter]   -> 排除非鱼类(藻类/凝胶): {qualifiedId} (原始ID: {itemId})", false);
+                return false;
+            }
         }
 
         // 尝试从游戏数据中获取物品信息
-        // 在1.6中使用ItemRegistry来获取物品数据
-        // 注意: fishCaught中的ID可能已经是完整的qualified ID,也可能只是数字ID
-        string qualifiedId = itemId.StartsWith("(") ? itemId : "(O)" + itemId;
-
         var itemData = StardewValley.ItemRegistry.GetDataOrErrorItem(qualifiedId);
 
         if (itemData == null)
@@ -129,6 +139,7 @@ public static class FishCounter
         // 检查ObjectType字段是否包含"Fish"
         if (itemData.ObjectType != null && itemData.ObjectType.Contains("Fish", StringComparison.OrdinalIgnoreCase))
         {
+            // 特殊处理：虽然海草等物品的 ObjectType 也可能包含 Fish，但前面已经排除了
             if (enableDebug)
                 _logCallback?.Invoke($"[FishCounter]   -> 匹配ObjectType=Fish", false);
             return true;
