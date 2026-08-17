@@ -2,6 +2,8 @@ using HarmonyLib;
 using StardewValley;
 using StardewValley.Menus;
 using System.Reflection;
+using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
 
 namespace FishingBarGrowth;
 
@@ -13,6 +15,17 @@ public static class BobberBarPatch
 {
     private static ModConfig? _config;
     private static Action<string, bool>? _logDebug;
+    private static readonly ConditionalWeakTable<BobberBar, AppliedGrowth> AppliedGrowthByBar = new();
+
+    private sealed class AppliedGrowth
+    {
+        public int Pixels { get; }
+
+        public AppliedGrowth(int pixels)
+        {
+            Pixels = pixels;
+        }
+    }
 
     // 保存最后一次钓鱼的统计数据,供HUD使用
     public static int LastBaseHeight { get; private set; } = 0;
@@ -83,6 +96,9 @@ public static class BobberBarPatch
                 newHeight = _config.MaxBarHeight;
             }
 
+            // Rule: treasure mechanics exclude only the height actually added by this mod.
+            AppliedGrowthByBar.Add(__instance, new AppliedGrowth(Math.Max(0, newHeight - baseHeight)));
+
             // 保存统计数据供HUD使用
             LastBaseHeight = baseHeight;
             LastBonusPixels = bonusPixels;
@@ -104,6 +120,65 @@ public static class BobberBarPatch
         catch (Exception ex)
         {
             _logDebug?.Invoke($"应用钓鱼条补丁时出错: {ex.Message}", true);
+        }
+    }
+
+    public static int GetTreasureBarHeight(BobberBar bobberBar)
+    {
+        return AppliedGrowthByBar.TryGetValue(bobberBar, out AppliedGrowth? growth)
+            ? Math.Max(0, bobberBar.bobberBarHeight - growth.Pixels)
+            : bobberBar.bobberBarHeight;
+    }
+
+    [HarmonyPatch(typeof(BobberBar), nameof(BobberBar.update))]
+    private static class TreasureBarPatch
+    {
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> KeepTreasureBarAtOriginalHeight(
+            IEnumerable<CodeInstruction> instructions)
+        {
+            FieldInfo treasureAppearTimerField = AccessTools.Field(typeof(BobberBar), nameof(BobberBar.treasureAppearTimer));
+            FieldInfo treasureCatchLevelField = AccessTools.Field(typeof(BobberBar), nameof(BobberBar.treasureCatchLevel));
+            FieldInfo bobberBarHeightField = AccessTools.Field(typeof(BobberBar), nameof(BobberBar.bobberBarHeight));
+            MethodInfo getTreasureBarHeightMethod = AccessTools.Method(
+                typeof(BobberBarPatch),
+                nameof(GetTreasureBarHeight)
+            );
+
+            bool inTreasureLogic = false;
+            int replacements = 0;
+            var result = new List<CodeInstruction>();
+
+            foreach (CodeInstruction instruction in instructions)
+            {
+                if (instruction.LoadsField(treasureAppearTimerField))
+                    inTreasureLogic = true;
+
+                if (inTreasureLogic && instruction.LoadsField(bobberBarHeightField))
+                {
+                    var replacement = new CodeInstruction(OpCodes.Call, getTreasureBarHeightMethod);
+                    replacement.labels.AddRange(instruction.labels);
+                    replacement.blocks.AddRange(instruction.blocks);
+                    result.Add(replacement);
+                    replacements++;
+                }
+                else
+                {
+                    result.Add(instruction);
+                }
+
+                if (instruction.LoadsField(treasureCatchLevelField))
+                    inTreasureLogic = false;
+            }
+
+            if (replacements != 2)
+            {
+                throw new InvalidOperationException(
+                    $"宝藏条兼容补丁预期替换2处高度读取，实际找到{replacements}处。"
+                );
+            }
+
+            return result;
         }
     }
 }
